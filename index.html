@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blokz Reflex</title>
+
+  <!-- Manifest pour PWA -->
+  <link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" type="image/png" />
+<meta name="theme-color" content="#00ffc8" />
+
+  <!-- Ton CSS ou autres liens ici -->
+</head>
+<body>
+  <!-- Ton code HTML / jeu ici -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Blokz Reflex</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body { background: linear-gradient(to bottom right, #1f1f1f, #000); color: white; overflow: hidden; }
+
+    .page { display: none; padding: 2rem; text-align: center; height: 100vh; }
+    .active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+    h1 { font-size: 3rem; color: #00ffc8; }
+
+    .btn {
+      margin: 1rem;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      background: #00ffc8;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .btn:hover { background: #00ccaa; }
+
+    #gameArea {
+      width: 100%;
+      max-width: 800px;
+      height: 80vh;
+      border: 2px solid #00ffc8;
+      margin: auto;
+      position: relative;
+      background: #111;
+      border-radius: 20px;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    .block {
+      width: 60px;
+      height: 60px;
+      position: absolute;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .gray { background: gray; }
+    .red { background: #ff4d4d; }
+    .blue { background: #4d94ff; }
+    .green { background: #4dff88; }
+    .yellow { background: #ffff4d; }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      width: 90%;
+      margin: 1rem auto;
+      font-size: 1.2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .topbar {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .link-btn {
+      background: transparent;
+      border: 1px solid #00ffc8;
+      color: #00ffc8;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 1rem;
+    }
+    .link-btn:hover {
+      background: #00ccaa;
+      color: #000;
+      border-color: #00ccaa;
+    }
+
+    .store-item {
+      background: #222;
+      padding: 1rem;
+      margin: 1rem;
+      border-radius: 10px;
+      border: 1px solid #444;
+      max-width: 400px;
+      user-select: none;
+    }
+
+    .store-item h3 { margin-bottom: 0.5rem; }
+
+    .store-item button {
+      background: #00ffc8;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 1rem;
+    }
+
+    #countdown {
+      font-size: 5rem;
+      font-weight: bold;
+      margin-top: 2rem;
+      user-select: none;
+    }
+
+    /* Ajustements mobiles */
+    @media (max-width: 600px) {
+      h1 { font-size: 2.2rem; }
+      .btn { padding: 0.8rem 1.5rem; font-size: 1rem; }
+      #gameArea { height: 60vh; }
+      .block { width: 50px; height: 50px; }
+      .hud { font-size: 1rem; }
+      .topbar { top: 0.5rem; right: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ACCUEIL -->
+  <div id="home" class="page active">
+    <h1>Blokz Reflex</h1>
+    <p>🎯 Clique sur les blocs colorés pour gagner des 🏆.</p>
+    <p>❌ Évite les blocs gris. Rater un bloc coloré = -3 ❤️</p>
+    <p>💾 Trophées et améliorations sont sauvegardés automatiquement.</p>
+    <p>📖Open source📖</p>
+    <button class="btn" onclick="chooseDifficulty('easy')">Facile</button>
+    <button class="btn" onclick="chooseDifficulty('medium')">Moyen</button>
+    <button class="btn" onclick="chooseDifficulty('impossible')">Impossible</button>
+    <button class="btn" onclick="goToLocal()">Local</button>
+    <div class="topbar">
+      <button class="link-btn" onclick="showPage('shop')">🏪 Boutique</button>
+      <button class="link-btn" onclick="showPage('profile')">👤 Profil</button>
+    </div>
+  </div>
+
+  <!-- ÉCRAN PRÊT -->
+  <div id="ready" class="page">
+    <h1>Tu es prêt ?</h1>
+    <p>Le jeu commence dès que tu appuies sur <strong>Commencer</strong>.</p>
+    <button class="btn" onclick="startGame()">Commencer</button>
+    <button class="btn" onclick="showPage('home')">Retour</button>
+  </div>
+
+  <!-- JEU -->
+  <div id="game" class="page">
+    <div class="hud">
+      <div>❤️ Vies : <span id="lives"></span></div>
+      <div>🏆 Trophées : <span id="trophies"></span></div>
+      <div>🔥 Multiplicateur : x<span id="multiplier"></span></div>
+      <div>📈 Score : <span id="score"></span></div>
+    </div>
+    <div id="countdown"></div>
+    <div id="gameArea"></div>
+    <div class="topbar">
+    </div>
+  </div>
+
+  <!-- BOUTIQUE -->
+  <div id="shop" class="page">
+    <h1>Boutique 🛒</h1>
+    <div class="store-item">
+      <h3>❤️ Vie Supplémentaire — 50 🏆</h3>
+      <button onclick="buyLife()">Acheter</button>
+    </div>
+    <div class="store-item">
+      <h3>🔥 Multiplicateur x<span id="shopMultiplier"></span> → x<span id="nextMultiplier"></span> — <span id="multiplierCost"></span> 🏆</h3>
+      <button onclick="upgradeMultiplier()">Améliorer</button>
+    </div>
+    <button class="btn" onclick="showPage('home')">Retour</button>
+  </div>
+
+  <!-- PROFIL -->
+  <div id="profile" class="page">
+    <h1>Profil 👤</h1>
+    <p>🏆 Trophées : <span id="profileTrophies"></span></p>
+    <p>❤️ Vies : <span id="profileLives"></span></p>
+    <p>🔥 Multiplicateur : x<span id="profileMultiplier"></span></p>
+    <button class="btn" onclick="showPage('home')">Retour</button>
+  </div>
+
+  <!-- MODE LOCAL -->
+<div id="local" class="page">
+  <h1>Mode Local</h1>
+  <button class="btn" onclick="window.location.href='local.html'">Commencer</button>
+  <button class="btn" onclick="showPage('home')">Retour</button>
+</div>
+
+
+  <script>
+    const pages = ["home", "ready", "game", "shop", "profile", "local"];
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    const difficulties = { easy: 3000, medium: 1500, impossible: 800 };
+    let gameTimer, currentBlock, selectedDifficulty = "easy";
+    let trophies = parseInt(localStorage.getItem("trophies") || "0");
+    let lives = parseInt(localStorage.getItem("lives") || "3");
+    let multiplier = parseInt(localStorage.getItem("multiplier") || "1");
+    let score = 0;
+
+    function showPage(id) {
+      pages.forEach(p => document.getElementById(p).classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      if (id === 'shop') updateShop();
+      if (id === 'profile') updateProfile();
+    }
+
+    function updateHUD() {
+      document.getElementById("lives").textContent = lives;
+      document.getElementById("trophies").textContent = trophies;
+      document.getElementById("multiplier").textContent = multiplier;
+      document.getElementById("score").textContent = score;
+    }
+
+    function updateShop() {
+      document.getElementById("shopMultiplier").textContent = multiplier;
+      document.getElementById("nextMultiplier").textContent = multiplier + 1;
+      document.getElementById("multiplierCost").textContent = multiplier * 100;
+    }
+
+    function updateProfile() {
+      document.getElementById("profileTrophies").textContent = trophies;
+      document.getElementById("profileLives").textContent = lives;
+      document.getElementById("profileMultiplier").textContent = multiplier;
+    }
+
+    function saveData() {
+      localStorage.setItem("trophies", trophies);
+      localStorage.setItem("lives", lives);
+      localStorage.setItem("multiplier", multiplier);
+    }
+
+    // Choix de la difficulté -> va sur l'écran prêt
+    function chooseDifficulty(diff) {
+      selectedDifficulty = diff;
+      showPage('ready');
+    }
+
+    // Démarre le jeu avec compte à rebours
+    function startGame() {
+      showPage('game');
+      score = 0;
+      updateHUD();
+      lives = 3;  // Remise à 3 vies à chaque début de partie
+      updateHUD();
+      countdown(3, () => spawnBlock());
+    }
+
+    // Compte à rebours avant lancement du jeu
+    function countdown(seconds, callback) {
+      const countdownEl = document.getElementById('countdown');
+      countdownEl.textContent = seconds;
+      let current = seconds;
+      const interval = setInterval(() => {
+        current--;
+        if (current > 0) {
+          countdownEl.textContent = current;
+        } else {
+          clearInterval(interval);
+          countdownEl.textContent = "";
+          callback();
+        }
+      }, 1000);
+    }
+
+    // Génère un bloc aléatoire (coloré ou gris)
+    function spawnBlock() {
+      const gameArea = document.getElementById('gameArea');
+      if (currentBlock) {
+        currentBlock.remove();
+        currentBlock = null;
+      }
+
+      const block = document.createElement('div');
+      block.classList.add('block');
+
+      // 20% de chances bloc gris
+      const isGray = Math.random() < 0.2;
+      if (isGray) {
+        block.classList.add('gray');
+      } else {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        block.classList.add(color);
+      }
+
+      // Position aléatoire dans la zone de jeu (en tenant compte de la taille du bloc)
+      const maxX = gameArea.clientWidth - 60;
+      const maxY = gameArea.clientHeight - 60;
+      block.style.left = Math.floor(Math.random() * maxX) + 'px';
+      block.style.top = Math.floor(Math.random() * maxY) + 'px';
+
+      gameArea.appendChild(block);
+      currentBlock = block;
+
+      // Temps pour cliquer selon difficulté
+      gameTimer = setTimeout(() => {
+        // Si on a pas cliqué sur un bloc coloré à temps -> perte de vie
+        if (!block.classList.contains('gray')) {
+          lives--;
+          updateHUD();
+          if (lives <= 0) {
+            endGame();
+            return;
+          }
+        }
+        spawnBlock();
+      }, difficulties[selectedDifficulty]);
+
+      // Gestion du clic sur le bloc
+      block.addEventListener('click', () => {
+        if (block.classList.contains('gray')) {
+          // Perte immédiate, mais on ne bloque pas, on termine et on remet vies
+          alert("Tu as cliqué sur un bloc gris ! Partie terminée.");
+          saveData();
+          endGame();
+          return;
+        } else {
+          // Bloc coloré cliqué -> + score et trophées
+          score++;
+          trophies += multiplier;
+          updateHUD();
+          saveData();
+          clearTimeout(gameTimer);
+          spawnBlock();
+        }
+      });
+    }
+
+    // Fin de la partie
+    function endGame() {
+      clearTimeout(gameTimer);
+      alert(`Partie terminée !\nScore final : ${score}\nTrophées gagnés : ${score * multiplier}`);
+      trophies += score * multiplier;
+      saveData();
+      lives = 3; // Remise des vies à 3 pour pouvoir rejouer sans bloquer
+      saveData();
+      showPage('home');
+    }
+
+    // Boutique
+    function buyLife() {
+      if (trophies >= 50) {
+        trophies -= 50;
+        lives++;
+        saveData();
+        alert("Vie achetée !");
+        updateShop();
+        updateHUD();
+      } else {
+        alert("Pas assez de trophées !");
+      }
+    }
+
+    function upgradeMultiplier() {
+      const cost = multiplier * 100;
+      if (trophies >= cost) {
+        trophies -= cost;
+        multiplier++;
+        saveData();
+        alert(`Multiplicateur amélioré à x${multiplier} !`);
+        updateShop();
+        updateHUD();
+      } else {
+        alert("Pas assez de trophées !");
+      }
+    }
+
+    // Page mode local (placeholder)
+    function goToLocal() {
+      showPage('local');
+    }
+
+    // Initialisation affichage
+    updateHUD();
+
+  </script>
+</body>
+</html
+  <!-- Script d'enregistrement du service worker pour PWA -->
+  <script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(reg => console.log('SW enregistré', reg))
+    .catch(err => console.error('Erreur SW', err));
+}
+</script>
+</body>
+      </html>
